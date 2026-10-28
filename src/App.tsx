@@ -42,6 +42,11 @@ import { PromptCard } from './components/PromptCard';
 import { CategoryIcon } from './components/CategoryIcon';
 import { PWAInstallButton, OfflineIndicator } from './components/PWAInstallButton';
 import { Scene3DBackground } from './components/Scene3DBackground';
+import {
+  LicenseGate,
+  StoredLicenseInfo,
+  LICENSE_STORAGE_KEY,
+} from './components/LicenseGate';
 
 type ActiveTab = 'home' | 'category_detail' | 'search' | 'saved' | 'studio';
 
@@ -101,6 +106,18 @@ export default function App() {
   const [showProLicenseModal, setShowProLicenseModal] = useState<boolean>(false);
   const [showScrollTop, setShowScrollTop] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Persisted Gumroad License Key Verification State in LocalStorage
+  const [licenseInfo, setLicenseInfo] = useState<StoredLicenseInfo | null>(() => {
+    try {
+      const saved = localStorage.getItem(LICENSE_STORAGE_KEY);
+      if (!saved) return null;
+      const parsed = JSON.parse(saved) as StoredLicenseInfo;
+      return parsed && parsed.licenseKey ? parsed : null;
+    } catch {
+      return null;
+    }
+  });
 
   // Custom Prompt Studio State
   const [studioGoal, setStudioGoal] = useState<string>(
@@ -329,6 +346,34 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Show Gumroad License Key Activation Gate if not yet activated in LocalStorage
+  if (!licenseInfo) {
+    return (
+      <div
+        className={`min-h-screen w-full overflow-x-hidden transition-colors duration-300 font-sans selection:bg-[#F5C451] selection:text-[#08090D] ${
+          isDark ? 'bg-[#08090D] text-[#F8FAFC]' : 'bg-[#F8FAFC] text-[#0F172A]'
+        }`}
+      >
+        <Scene3DBackground
+          isDark={isDark}
+          activeTab="home"
+          categoryId={1}
+          cluster="All"
+          categoryName="Ravomix Prompt"
+        />
+        <LicenseGate
+          isDark={isDark}
+          onToggleTheme={() => setIsDark((prev) => !prev)}
+          onActivateSuccess={(info) => {
+            setLicenseInfo(info);
+            setToastMessage('License Verified! Welcome to Ravomix Prompt Pro.');
+            setTimeout(() => setToastMessage(null), 3200);
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div
       className={`min-h-screen w-full overflow-x-hidden transition-colors duration-300 font-sans selection:bg-[#F5C451] selection:text-[#08090D] ${
@@ -365,7 +410,7 @@ export default function App() {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="w-5 h-5 text-emerald-400" />
-                <h3 className="font-bold text-base">Ravomix Pro Vault Edition</h3>
+                <h3 className="font-bold text-base">Ravomix Pro License Status</h3>
               </div>
               <button
                 onClick={() => setShowProLicenseModal(false)}
@@ -379,29 +424,27 @@ export default function App() {
                 isDark ? 'text-slate-300' : 'text-slate-600'
               }`}
             >
-              <p>
-                <strong className="text-[#F5C451]">100% Offline Architecture:</strong> All 42
-                categories and 10,500+ multilingual prompts are bundled inside this application for
-                instant offline execution without API keys or monthly fees.
-              </p>
-              <p>
-                <strong className="text-[#F5C451]">10 Global Languages Included:</strong> Switch
-                between English, Hinglish, Español, Français, 日本語, Italiano, Deutsch, Português,
-                العربية, and 中文 on any prompt card.
-              </p>
               <div
                 className={`p-3.5 rounded-2xl border ${
-                  isDark ? 'bg-[#08090D] border-white/10' : 'bg-slate-50 border-slate-200'
+                  isDark ? 'bg-[#08090D] border-emerald-500/30' : 'bg-emerald-50 border-emerald-200'
                 }`}
               >
                 <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-400 mb-1">
-                  Lifetime Pro Pack — Instant Checkout
+                  ✓ Active Gumroad License (Saved in LocalStorage)
                 </div>
-                <div className="text-[11px] opacity-80">
-                  Get lifetime offline updates, commercial usage rights, and full multi-device
-                  access for a one-time payment of $19.99 USD / ₹499 INR.
+                <div className="font-mono font-bold text-xs break-all text-[#F5C451]">
+                  Key: {licenseInfo.licenseKey}
+                </div>
+                <div className="text-[10px] opacity-75 mt-1">
+                  Activated: {new Date(licenseInfo.activatedAt).toLocaleDateString()} • Status: Verified Lifetime Access
                 </div>
               </div>
+
+              <p>
+                <strong className="text-[#F5C451]">100% Offline Architecture:</strong> All 42
+                categories and 10,500+ multilingual prompts are unlocked on this device without
+                needing to re-enter your license key.
+              </p>
             </div>
             <div className="mt-5 flex flex-col gap-2">
               <a
@@ -410,9 +453,19 @@ export default function App() {
                 rel="noopener noreferrer"
                 className="w-full py-3 rounded-xl bg-gradient-to-r from-[#F5C451] to-[#FF9F0A] text-[#08090D] font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-[#F5C451]/20 hover:brightness-110 transition-all"
               >
-                <span>🔓 Unlock Full Pro Access ($19.99 USD / ₹499 INR)</span>
+                <span>🔓 Buy Additional License ($19.99 USD / ₹499 INR)</span>
                 <ExternalLink className="w-4 h-4 shrink-0" />
               </a>
+              <button
+                onClick={() => {
+                  localStorage.removeItem(LICENSE_STORAGE_KEY);
+                  setLicenseInfo(null);
+                  setShowProLicenseModal(false);
+                }}
+                className="w-full py-2.5 rounded-xl font-bold text-xs border border-red-500/30 text-red-400 hover:bg-red-500/10 cursor-pointer transition-colors"
+              >
+                Lock App / Switch License Key
+              </button>
               <button
                 onClick={() => setShowProLicenseModal(false)}
                 className={`w-full py-2.5 rounded-xl font-bold text-xs border cursor-pointer ${
