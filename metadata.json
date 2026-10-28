@@ -1,0 +1,6 @@
+{
+  "name": "Ravomix Prompt",
+  "description": "Offline-first multilingual AI prompt engineering library featuring 42+ specialized categories, 10,500+ complete production prompts, and an instant 10-language translation engine.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
